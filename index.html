@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kunama Academy (KUNACA)</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      background: linear-gradient(to right, #4facfe, #00f2fe); 
+      padding: 20px; 
+      margin: 0; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+    }
+    .container {
+      width: 90%; /* Adjusted for better mobile responsiveness */
+      max-width: 800px; /* Added max-width for larger screens */
+      background: rgba(255, 255, 255, 0.9);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      color: black;
+      text-align: left;
+      position: relative;
+    }
+    .search-bar { 
+      width: 80%; /* Full width for better usability */
+      padding: 8px; 
+      margin-bottom: 20px; 
+      font-size: 1.1em; 
+      border: 1px solid #007BFF; 
+      border-radius: 8px; 
+      display: block; 
+    }
+    .phrase { 
+      font-size: 2.2em; 
+      color: #333; 
+      font-weight: bold; 
+      margin-bottom: 20px; 
+    }
+    .translation { 
+      font-size: 1.8em; 
+      color: #007BFF; 
+      font-style: italic; 
+      opacity: 0; 
+      transition: opacity 1s; 
+      margin-bottom: 20px; 
+    }
+    .controls { 
+      margin-top: 20px; 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 10px; 
+    }
+    button { 
+      font-size: 1em; 
+      padding: 10px 20px; 
+      border: none; 
+      border-radius: 8px; 
+      background-color: #007BFF; 
+      color: white; 
+      cursor: pointer; 
+      transition: 0.3s; 
+    }
+    button:hover { background-color: #0056b3; transform: scale(1.05); }
+    button:disabled { background-color: #aaa; cursor: not-allowed; transform: none; }
+    .progress-container { 
+      width: 100%; 
+      background: #ddd; 
+      border-radius: 5px; 
+      margin-top: 20px; 
+      height: 20px; 
+      overflow: hidden; 
+    }
+    .progress-bar { 
+      height: 100%; 
+      width: 0%; 
+      background: #28a745; 
+      transition: width 0.5s; 
+    }
+    .slide-number { 
+      text-align: left; 
+      margin-top: 10px; 
+      font-size: 1.2em; 
+      color: black; 
+    }
+    .video-container {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 140px;
+      height: 140px;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    video, img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+    }
+    .dev-controls { 
+      margin-top: 20px; 
+      padding: 10px; 
+      border: 1px dashed #007BFF; 
+      border-radius: 8px; 
+    }
+    .dev-controls input { 
+      width: calc(50% - 12px); 
+      padding: 8px; 
+      margin: 5px; 
+      border: 1px solid #007BFF; 
+      border-radius: 8px; 
+    }
+    /* New styles for accessibility and responsiveness */
+    @media (max-width: 600px) {
+      .phrase { font-size: 1.8em; }
+      .translation { font-size: 1.5em; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="teachingContainer" role="main">
+    <h1>Kunama Academy (KUNACA)</h1>
+    <label>
+      <input type="checkbox" id="modeToggle" onchange="toggleMode()"> Developer Mode
+    </label>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." onkeyup="searchPhrase()" aria-label="Search for a phrase">
+    <div class="phrase" id="phrase" aria-live="polite">Loading...</div>
+    <div class="translation" id="translation" aria-live="polite">Loading...</div>
+    <div class="controls">
+      <button id="prev" disabled aria-label="Previous phrase">⬅ Previous</button>
+      <button id="next" disabled aria-label="Next phrase">Next ➡</button>
+    </div>
+    <div class="progress-container" aria-label="Progress of phrases">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="slide-number" id="slideNumber">Slide 1 of 1</div>
+    <div class="controls">
+      <button id="toggleCamera" aria-label="Toggle camera">📷 Turn On Camera</button>
+      <input type="file" id="uploadImage" accept="image/*" style="display:none;" aria-label="Upload image">
+      <button onclick="document.getElementById('uploadImage').click()" aria-label="Upload picture">📸 Upload Picture</button>
+      <button id="startRecording" aria-label="Start recording">🎥 Start Recording</button>
+      <button id="stopRecording" disabled aria-label="Stop recording">⏹ Stop Recording</button>
+    </div>
+    <div class="video-container">
+      <video id="video" autoplay></video>
+      <img id="uploadedImage" style="display: none;" alt="Uploaded image">
+    </div>
+    <div class="dev-controls" id="devControls" style="display: none;">
+      <h3>Add New Phrase</h3>
+      <input type="text" id="newPhrase" placeholder="New phrase" aria-label="New phrase">
+      <input type="text" id="newTranslation" placeholder="New translation" aria-label="New translation">
+      <button onclick="addPhrase()" aria-label="Add new phrase">Add Phrase</button>
+      <button onclick="exportPhrases()" aria-label="Export phrases">Export Phrases</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="importPhrases(event)" aria-label="Import phrases">
+      <button onclick="document.getElementById('importFile').click()" aria-label="Import phrases">Import Phrases</button>
+    </div>
+  </div>
+
+  <script>
+    // Default phrases stored locally if not imported
+    const defaultPhrases = [
+      { phrase: "Hi, how are you?", translation: "Hi, ayken nokosso?" },
+      { phrase: "Hello! How’s it going?", translation: "Hello, aykes gaskeso gosso?" },
+      { phrase: "Good morning!", translation: "Maydoka niñinube/Fem mesube?" },
+      { phrase: "What’s your name?", translation: "Kideya nano?" }
+    ];
+    let phrases = defaultPhrases.slice();
+    let currentIndex = 0, cameraStream = null, mediaRecorder, recordedChunks = [], translationTimeout;
+
+    function showPhrase(index) {
+      clearTimeout(translationTimeout);
+      document.getElementById("phrase").textContent = phrases[index].phrase;
+      const translationEl = document.getElementById("translation");
+      translationEl.textContent = "";
+      translationEl.style.opacity = 0;
+      translationTimeout = setTimeout(() => { translationEl.textContent = phrases[index].translation; translationEl.style.opacity = 1; }, 1000);
+      document.getElementById("prev").disabled = index === 0;
+      document.getElementById("next").disabled = index === phrases.length - 1;
+      updateProgress();
+    }
+
+    function updateProgress() {
+      document.getElementById("progressBar").style.width = ((currentIndex + 1) / phrases.length) * 100 + "%";
+      document.getElementById("slideNumber").textContent = `Slide ${currentIndex + 1} of ${phrases.length}`;
+    }
+
+    function searchPhrase() {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      const result = phrases.find(p => p.phrase.toLowerCase().includes(input) || p.translation.toLowerCase().includes(input));
+      if (result) { currentIndex = phrases.indexOf(result); showPhrase(currentIndex); }
+    }
+
+    document.getElementById("next").addEventListener("click", function() { if (currentIndex < phrases.length - 1) { currentIndex++; showPhrase(currentIndex); } });
+    document.getElementById("prev").addEventListener("click", function() { if (currentIndex > 0) { currentIndex--; showPhrase(currentIndex); } });
+
+    function toggleMode() {
+      document.getElementById("devControls").style.display = document.getElementById("modeToggle").checked ? "block" : "none";
+    }
+
+    function addPhrase() {
+      const newP = document.getElementById("newPhrase").value.trim();
+      const newT = document.getElementById("newTranslation").value.trim();
+      if(newP && newT) {
+        phrases.push({ phrase: newP, translation: newT });
+        document.getElementById("newPhrase").value = "";
+        document.getElementById("newTranslation").value = "";
+        alert("Phrase added.");
+        updateProgress();
+      }
+    }
+
+    function exportPhrases() {
+      const dataStr = JSON.stringify(phrases, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "phrases.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    function importPhrases(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            phrases = imported;
+            currentIndex = 0;
+            showPhrase(currentIndex);
+            alert("Phrases imported successfully.");
+          } else {
+            alert("Invalid file format.");
+          }
+        } catch (err) {
+          alert("Error reading file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    document.getElementById("toggleCamera").addEventListener("click", async function() {
+      const video = document.getElementById("video");
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+        video.style.display = "none";
+        this.textContent = "📷 Turn On Camera";
+      } else {
+        try { 
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = cameraStream;
+          video.style.display = "block";
+          this.textContent = "📷 Turn Off Camera";
+        } catch (err) { console.error("Camera error:", err); }
+      }
+    });
+
+    document.getElementById("uploadImage").addEventListener("change", function(event) {
+      const img = document.getElementById("uploadedImage");
+      img.src = URL.createObjectURL(event.target.files[0]);
+      img.style.display = "block";
+      document.getElementById("video").style.display = "none";
+    });
+
+    document.getElementById("startRecording").addEventListener("click", function() {
+      const container = document.getElementById("teachingContainer");
+      if (!container.captureStream) { console.error("captureStream not supported."); return; }
+      let stream = container.captureStream(30);
+      mediaRecorder = new MediaRecorder(stream);
+      recordedChunks = [];
+      mediaRecorder.ondataavailable = event => { if (event.data.size > 0) recordedChunks.push(event.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "session_recording.webm"; 
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      };
+      mediaRecorder.start();
+      this.disabled = true;
+      document.getElementById("stopRecording").disabled = false;
+    });
+
+    document.getElementById("stopRecording").addEventListener("click", function() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") { mediaRecorder.stop(); }
+      this.disabled = true;
+      document.getElementById("startRecording").disabled = false;
+    });
+
+    showPhrase(0);
+  </script>
+</body>
+</html>
