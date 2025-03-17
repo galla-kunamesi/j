@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kunama Academy (KUNACA)</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      background: linear-gradient(to right, #4facfe, #00f2fe); 
+      padding: 20px; 
+      margin: 0; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+    }
+    .container {
+      width: 90%;
+      max-width: 800px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      color: black;
+      text-align: left;
+    }
+    .search-bar, .new-input { 
+      width: 100%;
+      padding: 10px; 
+      font-size: 1.2em; 
+      border: 1px solid #007BFF; 
+      border-radius: 8px; 
+      display: block; 
+      margin-bottom: 10px;
+    }
+    .results { 
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 10px; 
+    }
+    .result-item {
+      padding: 10px;
+      border-radius: 8px;
+      background: #f1f1f1;
+      margin-bottom: 10px;
+    }
+    .phrase { 
+      font-weight: bold;
+      color: #333; 
+    }
+    .translation { 
+      font-size: 1.2em;
+      color: #007BFF; 
+      font-style: italic; 
+    }
+    .add-section {
+      margin-top: 20px;
+      display: none;
+    }
+    .checkbox-label {
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .add-btn {
+      padding: 10px;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .add-btn:hover { background-color: #218838; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Kunama Academy (KUNACA)</h1>
+    
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search a phrase..." aria-label="Search for a phrase">
+    <div class="results" id="results"></div>
+
+    <label class="checkbox-label">
+      <input type="checkbox" id="addNewCheckbox"> ✅ Add New Phrase
+    </label>
+
+    <div class="add-section" id="addSection">
+      <input type="text" id="newPhrase" class="new-input" placeholder="Enter phrase...">
+      <input type="text" id="newTranslation" class="new-input" placeholder="Enter translation...">
+      <button class="add-btn" onclick="addNewPhrase()">Add Phrase</button>
+      <p id="statusMessage"></p>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxrSqUOrRUCV2peb2EF_UAveaRybrOBo5YarYEUhrJ3rfbhWZjsTJlKnYtbGHycIeV1cQ/exec";
+    let timeout = null;
+
+    document.getElementById("searchInput").addEventListener("input", function () {
+      clearTimeout(timeout);
+      timeout = setTimeout(searchPhrase, 300);
+    });
+
+    document.getElementById("addNewCheckbox").addEventListener("change", function() {
+      document.getElementById("addSection").style.display = this.checked ? "block" : "none";
+    });
+
+    async function searchPhrase() {
+      const input = document.getElementById("searchInput").value.trim();
+      const resultsContainer = document.getElementById("results");
+      resultsContainer.innerHTML = "";
+
+      if (!input) {
+        resultsContainer.innerHTML = "<p>Type a phrase to search...</p>";
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}?q=${encodeURIComponent(input)}`);
+        const results = await response.json();
+
+        if (!results.length) {
+          resultsContainer.innerHTML = "<p>No results found</p>";
+          return;
+        }
+
+        resultsContainer.innerHTML = results.map(result => `
+          <div class="result-item">
+            <p class="phrase">${result.phrase}</p>
+            <p class="translation">${result.translation}</p>
+          </div>
+        `).join("");
+      } catch (error) {
+        console.error("Error fetching translation:", error);
+        resultsContainer.innerHTML = "<p>Error fetching data</p>";
+      }
+    }
+
+    async function addNewPhrase() {
+      const phrase = document.getElementById("newPhrase").value.trim();
+      const translation = document.getElementById("newTranslation").value.trim();
+      const statusMessage = document.getElementById("statusMessage");
+
+      if (!phrase || !translation) {
+        statusMessage.textContent = "Please fill in both fields!";
+        statusMessage.style.color = "red";
+        return;
+      }
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phrase, translation })
+        });
+
+        const result = await response.text();
+        if (result === "Success") {
+          statusMessage.textContent = "Phrase added successfully!";
+          statusMessage.style.color = "green";
+          document.getElementById("newPhrase").value = "";
+          document.getElementById("newTranslation").value = "";
+        } else {
+          statusMessage.textContent = "Failed to add phrase!";
+          statusMessage.style.color = "red";
+        }
+      } catch (error) {
+        console.error("Error adding phrase:", error);
+        statusMessage.textContent = "Error adding phrase!";
+        statusMessage.style.color = "red";
+      }
+    }
+  </script>
+</body>
+</html>
